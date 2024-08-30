@@ -1,93 +1,153 @@
-document.addEventListener("DOMContentLoaded", function() {
-    startCountdown();
-});
+// Common Functions
 
+// Update Navbar based on user's login status and role
+function updateNavbar() {
+    const name = sessionStorage.getItem("name");
+    const role = sessionStorage.getItem("role");
+    const username = sessionStorage.getItem("username");
+
+    if (name && role) {
+        document.getElementById("navbar").innerHTML = `
+            <li><a href="index.html">Home</a></li>
+            ${role === 'admin' ? '<li><a href="reports.html">Reports</a></li>' : ''}
+            <li><a href="services.html">Services</a></li>
+            <li><a href="booking.html">Bookings</a></li>
+            <li><a href="#" id="logout">Logout</a></li>
+            <li><a href="#">Welcome, ${username} (${name})</a></li>
+        `;
+
+        document.getElementById("logout").onclick = function() {
+            sessionStorage.clear();
+            alert('Logged out successfully');
+            location.assign('index.html');
+        };
+    }
+}
+
+// Start countdown timer
 function startCountdown() {
     const endTime = new Date().getTime() + 10 * 60000; // 10 minutes from now
-    const timeInterval = setInterval(() => { // runs every second
-        const now = new Date().getTime(); // current time
-        const diff = endTime - now; // difference between end time and current time
-        if (diff > 0) {         // if there is still time left
-            const mins = Math.floor(diff / (1000 * 60)); // convert milliseconds to minutes
-            const secs = Math.floor((diff % (1000 * 60)) / 1000); // convert remaining milliseconds to seconds
-            document.getElementById('timer').innerHTML = `Offer expires in: ${mins}m ${secs}s`; // display the time left
+    const timeInterval = setInterval(() => {
+        const now = new Date().getTime();
+        const diff = endTime - now;
+        if (diff > 0) {
+            const mins = Math.floor(diff / (1000 * 60));
+            const secs = Math.floor((diff % (1000 * 60)) / 1000);
+            document.getElementById('timer').innerHTML = `Offer expires in: ${mins}m ${secs}s`;
         } else {
-            document.getElementById('timer').innerHTML = `Offer has expired`; // display the time left
-            clearInterval(timeInterval); // stop the countdown
+            document.getElementById('timer').innerHTML = `Offer has expired`;
+            clearInterval(timeInterval);
         }
-    }, 1000); // runs every second
+    }, 1000);
 }
 
-const exploreMoreButton = document.getElementById("exploreMore");
-if (exploreMoreButton) {
-    exploreMoreButton.onclick = function() {
-        alert("Hello World!");
-        location.assign('services.html');
-    };
+// Login Functionality
+function handleLogin(event) {
+    event.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    fetch('creds.json')
+        .then(response => response.json())
+        .then(users => {
+            const user = users.find(user => user.username === username && user.password === password);
+            const messageElement = document.getElementById("message");
+
+            if (user) {
+                sessionStorage.setItem("username", user.username);
+                sessionStorage.setItem("name", user.name);
+                sessionStorage.setItem("role", user.role);
+
+                messageElement.textContent = `Welcome, ${user.name}!`;
+                alert(`Login successful! Welcome ${user.username}`);
+                location.assign('index.html');
+            } else {
+                messageElement.textContent = "Invalid username or password.";
+                alert('Invalid credentials, please try again.');
+            }
+        })
+        .catch(error => console.error('Error:', error));
 }
 
-document.querySelectorAll('.more-details').forEach(button => {
-    button.onclick = function() {
-        location.assign(this.dataset.service + '.html');
-    };
-}); 
+// Service Page Functionality
+function handleBookService(serviceName) {
+    localStorage.setItem("selectedService", serviceName);
+    location.assign('booking.html');
+}
 
+// Handle Go Back button
+function handleGoBack() {
+    history.back(); // Navigate to the previous page
+}
 
-document.addEventListener("DOMContentLoaded", function() {  // Wait for the DOM to be fully loaded
-    const loginForm = document.getElementById("loginForm"); // Get the login form
+// Reports Page Functionality (Admin Only)
+function checkAdminAccess() {
+    const role = sessionStorage.getItem("role");
 
-    if (loginForm) { // If the login form exists
-        loginForm.onsubmit = function(event) { // When the form is submitted
-            event.preventDefault(); // Prevent form submission
-            const username = document.getElementById("username").value; // Get the username
-            const password = document.getElementById("password").value; // Get the password
+    if (role !== 'admin') {
+        alert("Access denied! Admins only.");
+        location.assign('login.html');
+    } else {
+        loadReports();
+    }
+}
 
-            fetch('creds.json') // Fetch the credentials from the JSON file
-                .then(response => response.json()) // Parse the JSON response
-                .then(users => { // When the users are loaded
-                    const user = users.find(user => user.username === username && user.password === password); // Find the user with the given username and password
-                    const messageElement = document.getElementById("message"); // Get the message element
+// Load mock service booking reports
+function loadReports() {
+    const reportContent = document.getElementById('reportContent');
+    const mockReports = [
+        { customer: "John Doe", service: "Preventive Maintenance", date: "2024-08-01" },
+        { customer: "Jane Smith", service: "Body Repair", date: "2024-08-02" },
+        { customer: "Bob Johnson", service: "Car Care", date: "2024-08-03" }
+    ];
 
-                    if (user) { // If the user exists
-                        sessionStorage.setItem("username", user.username); // Store the username in the session storage
-                        sessionStorage.setItem("name", user.name); // Store the name in the session storage
-                        sessionStorage.setItem("role", user.role); // Store the role in the session storage
+    let reportHtml = '<table>';
+    reportHtml += '<tr><th>Customer Name</th><th>Service</th><th>Date</th></tr>';
 
-                        messageElement.textContent = `Welcome, ${user.name}!`; // Display a welcome message
-                        alert(`Login successful!, Welcome ${user.username}`); // Display an alert
-                        location.assign('index.html'); // Redirect to the home page
-                    } else {
-                        messageElement.textContent = "Invalid username or password."; // Display an error message
-                        alert('Invalid credentials, please try again.'); // Display an alert
-                    }
-                })
-                .catch(error => console.error('Error:', error)); // Log any errors to the console
+    mockReports.forEach(report => {
+        reportHtml += `<tr><td>${report.customer}</td><td>${report.service}</td><td>${report.date}</td></tr>`;
+    });
+
+    reportHtml += '</table>';
+    reportContent.innerHTML = reportHtml;
+}
+
+// Event Listeners
+document.addEventListener("DOMContentLoaded", function() {
+    updateNavbar();
+
+    const loginForm = document.getElementById("loginForm");
+    if (loginForm) loginForm.onsubmit = handleLogin;
+
+    const exploreMoreButton = document.getElementById("exploreMore");
+    if (exploreMoreButton) {
+        exploreMoreButton.onclick = function() {
+            alert("Hello World!");
+            location.assign('services.html');
         };
     }
 
-    function customizeNavbar() { // Function to customize the navbar
-        const navbar = document.getElementById("navbar"); // Get the navbar element
-        const username = sessionStorage.getItem("username"); // Get the username from the session storage
-        const name = sessionStorage.getItem("name");    // Get the name from the session storage
-        const role = sessionStorage.getItem("role"); // Get the role from the session storage
+    document.querySelectorAll('.more-details').forEach(button => {
+        button.onclick = function() {
+            location.assign(this.dataset.service + '.html');
+        };
+    });
 
-        if (username && role) { // If the username and role exist
-            navbar.innerHTML = ` // Customize the navbar
-                <li><a href="index.html">Home</a></li>
-                <li><a href="#">Welcome, ${username}</a></li>
-                ${role === 'admin' ? '<li><a href="reports.html">Reports</a></li>' : ''}
-                <li><a href="services.html">Services</a></li>
-                <li><a href="booking.html">Bookings</a></li>
-                <li><a href="#" id="logout">Logout</a></li>
-            `;
-
-            document.getElementById("logout").onclick = function() { // When the logout link is clicked
-                sessionStorage.clear(); // Clear the session storage
-                alert('Logged out successfully'); // Display an alert
-                location.assign('index.html'); // Redirect to the home page
-            };
-        }
+    const bookServiceButton = document.getElementById("bookService");
+    if (bookServiceButton) {
+        bookServiceButton.onclick = function() {
+            const serviceName = this.dataset.serviceName || "Default Service";
+            handleBookService(serviceName);
+        };
     }
 
-    customizeNavbar(); // Call the function to customize the navbar
+    const goBackButton = document.getElementById("goBack");
+    if (goBackButton) goBackButton.onclick = handleGoBack;
+
+    const timerElement = document.getElementById('timer');
+    if (timerElement) startCountdown();
+
+    if (document.body.classList.contains('reports-page')) {
+        checkAdminAccess();
+    }
 });

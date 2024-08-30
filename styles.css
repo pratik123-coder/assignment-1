@@ -99,3 +99,10 @@ button:hover {
     font-weight: bold;
     margin-top: 20px;
 }
+
+.report-content{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
